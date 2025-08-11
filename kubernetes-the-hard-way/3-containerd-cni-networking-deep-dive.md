@@ -98,6 +98,27 @@ version = 2
 
 ---
 
+1. 10-bridge.conf – Pod-to-Pod / Pod-to-External Networking
+Purpose:
+Sets up the main Pod network using the bridge CNI plugin.
+Creates (or uses) a Linux bridge interface on the node (here cni0).
+Connects all Pods on that node to the same L2 network segment.
+Assigns IPs to Pods from a defined subnet (via IPAM).
+Allows Pod traffic to reach outside the cluster via NAT (ipMasq: true).
+In practice:
+When a Pod is created, its eth0 is connected to this bridge.
+The bridge’s IP acts as the gateway for Pods on that node.
+Example flow: Pod → cni0 → Node’s main interface → Internet/other nodes.
+
+2. 99-loopback.conf – Pod Internal Loopback
+Purpose:
+Ensures loopback networking (lo) works inside each Pod.
+Every Pod gets a loopback interface so processes can talk to themselves using localhost or 127.0.0.1.
+In practice:
+Required for many applications that bind to localhost.
+This is always needed even if you use other networking plugins.
+
+
 ## 3. IP Routing: Linux Kernel Forwarding
 
 **Purpose:**

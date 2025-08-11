@@ -34,6 +34,25 @@ resource "aws_security_group" "kubernetes_controlplane" {
     security_groups = [aws_security_group.jumpbox.id]
   }
 
+  # Allow VXLAN pod network from all nodes
+ingress {
+  description = "Pod network VXLAN"
+  from_port   = 8472
+  to_port     = 8472
+  protocol    = "udp"
+  cidr_blocks = [var.vpc_cidr]
+}
+
+# Allow DNS queries to CoreDNS on workers
+ingress {
+  description = "Cluster DNS UDP"
+  from_port   = 53
+  to_port     = 53
+  protocol    = "udp"
+  cidr_blocks = [var.vpc_cidr]
+}
+
+
   # API server access (port 6443) for internal clients like kubelets
   ingress {
     description = "API access from VPC"
@@ -120,6 +139,34 @@ resource "aws_security_group" "kubernetes_workers" {
     protocol        = "tcp"
     cidr_blocks = [var.vpc_cidr]
   }
+
+  # Allow control plane to talk to kubelet API
+ingress {
+  description     = "Kubelet API from control plane"
+  from_port       = 10250
+  to_port         = 10250
+  protocol        = "tcp"
+  security_groups = [aws_security_group.kubernetes_controlplane.id]
+}
+
+# Allow DNS queries between all nodes
+ingress {
+  description = "Cluster DNS UDP"
+  from_port   = 53
+  to_port     = 53
+  protocol    = "udp"
+  cidr_blocks = [var.vpc_cidr]
+}
+
+# Allow VXLAN pod networking (Flannel)
+ingress {
+  description = "Pod network VXLAN"
+  from_port   = 8472
+  to_port     = 8472
+  protocol    = "udp"
+  cidr_blocks = [var.vpc_cidr]
+}
+
 
 
 
