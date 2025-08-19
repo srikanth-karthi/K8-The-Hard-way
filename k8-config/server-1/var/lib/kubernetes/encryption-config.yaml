@@ -1,0 +1,11 @@
+kind: EncryptionConfiguration
+apiVersion: apiserver.config.k8s.io/v1
+resources:
+  - resources:
+      - secrets
+    providers:
+      - aescbc:
+          keys:
+            - name: key1
+              secret: rXIvoU78QSsd+RDSUK+W0HT1HS/o5aV2VG7COtuHp1Y=
+      - identity: {}
