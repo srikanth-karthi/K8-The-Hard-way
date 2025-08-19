@@ -74,6 +74,7 @@ resource "aws_instance" "workers" {
   vpc_security_group_ids = [aws_security_group.kubernetes_workers.id]
   subnet_id              = aws_subnet.private.id
   private_ip             = "10.240.0.8${count.index}"
+    source_dest_check = false
 
   root_block_device {
     volume_type = "gp3"

@@ -25,6 +25,8 @@ resource "aws_security_group" "kubernetes_controlplane" {
   name_prefix = "kubernetes-controlplane-"
   vpc_id      = aws_vpc.kubernetes.id
 
+  
+
   # SSH access ONLY from the jumpbox
   ingress {
     description     = "SSH from jumpbox only"
@@ -61,6 +63,7 @@ ingress {
     protocol    = "tcp"
     cidr_blocks = [var.vpc_cidr]  # 👈 includes worker nodes and internal traffic
   }
+
 
   # etcd client communication (used by apiserver) — internal only
   ingress {
@@ -138,6 +141,41 @@ resource "aws_security_group" "kubernetes_workers" {
     to_port         = 10250
     protocol        = "tcp"
     cidr_blocks = [var.vpc_cidr]
+  }
+# add this ONE rule to aws_security_group.kubernetes_workers
+ingress {
+  description     = "TEMP: all protocols from control-plane"
+  from_port       = 0
+  to_port         = 0
+  protocol        = "-1"
+  security_groups = [aws_security_group.kubernetes_controlplane.id]
+}
+
+
+  ingress {
+    description     = "All TCP from control-plane (masters)"
+    from_port       = 0
+    to_port         = 65535
+    protocol        = "tcp"
+    security_groups = [aws_security_group.kubernetes_controlplane.id]
+  }
+
+  # 🔹 Allow Flannel VXLAN from masters (if using Flannel)
+  ingress {
+    description     = "VXLAN (UDP 8472) from control-plane"
+    from_port       = 8472
+    to_port         = 8472
+    protocol        = "udp"
+    security_groups = [aws_security_group.kubernetes_controlplane.id]
+  }
+
+  # 🔹 Allow ICMP from masters (optional but useful for diag)
+  ingress {
+    description     = "ICMP from control-plane"
+    from_port       = -1
+    to_port         = -1
+    protocol        = "icmp"
+    security_groups = [aws_security_group.kubernetes_controlplane.id]
   }
 
   # Allow control plane to talk to kubelet API
