@@ -28,10 +28,18 @@ resource "aws_instance" "jumpbox" {
   }
   user_data_replace_on_change = true
 
+  lifecycle {
+    ignore_changes = [
+      ami
+    ]
+  }
+
   user_data = <<-EOF
               #!/bin/bash
               hostnamectl set-hostname jumpbox
               EOF
+
+  
 
   tags = {
     Name = "jumpbox"
@@ -51,6 +59,11 @@ resource "aws_instance" "controlplane" {
     volume_type = "gp3"
     volume_size = var.volume_size_gb
     encrypted   = true
+  }
+    lifecycle {
+    ignore_changes = [
+      ami
+    ]
   }
 
   user_data_replace_on_change = true
@@ -74,12 +87,23 @@ resource "aws_instance" "workers" {
   vpc_security_group_ids = [aws_security_group.kubernetes_workers.id]
   subnet_id              = aws_subnet.private.id
   private_ip             = "10.240.0.8${count.index}"
-    source_dest_check = false
+  source_dest_check      = false
+  iam_instance_profile   = aws_iam_instance_profile.workers.name
+
+   metadata_options {
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 2
+  }
 
   root_block_device {
     volume_type = "gp3"
     volume_size = var.volume_size_gb
     encrypted   = true
+  }
+    lifecycle {
+    ignore_changes = [
+      ami
+    ]
   }
   user_data_replace_on_change = true
   user_data                   = <<-EOF

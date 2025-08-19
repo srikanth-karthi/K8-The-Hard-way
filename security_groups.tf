@@ -25,7 +25,7 @@ resource "aws_security_group" "kubernetes_controlplane" {
   name_prefix = "kubernetes-controlplane-"
   vpc_id      = aws_vpc.kubernetes.id
 
-  
+
 
   # SSH access ONLY from the jumpbox
   ingress {
@@ -37,22 +37,22 @@ resource "aws_security_group" "kubernetes_controlplane" {
   }
 
   # Allow VXLAN pod network from all nodes
-ingress {
-  description = "Pod network VXLAN"
-  from_port   = 8472
-  to_port     = 8472
-  protocol    = "udp"
-  cidr_blocks = [var.vpc_cidr]
-}
+  ingress {
+    description = "Pod network VXLAN"
+    from_port   = 8472
+    to_port     = 8472
+    protocol    = "udp"
+    cidr_blocks = [var.vpc_cidr]
+  }
 
-# Allow DNS queries to CoreDNS on workers
-ingress {
-  description = "Cluster DNS UDP"
-  from_port   = 53
-  to_port     = 53
-  protocol    = "udp"
-  cidr_blocks = [var.vpc_cidr]
-}
+  # Allow DNS queries to CoreDNS on workers
+  ingress {
+    description = "Cluster DNS UDP"
+    from_port   = 53
+    to_port     = 53
+    protocol    = "udp"
+    cidr_blocks = [var.vpc_cidr]
+  }
 
 
   # API server access (port 6443) for internal clients like kubelets
@@ -61,7 +61,7 @@ ingress {
     from_port   = 6443
     to_port     = 6443
     protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr]  # 👈 includes worker nodes and internal traffic
+    cidr_blocks = [var.vpc_cidr] # 👈 includes worker nodes and internal traffic
   }
 
 
@@ -85,29 +85,29 @@ ingress {
 
   # Multi-master: etcd peer-to-peer between master nodes
   ingress {
-    description     = "etcd peer communication between masters"
-    from_port       = 2380
-    to_port         = 2380
-    protocol        = "tcp"
-    self = true
+    description = "etcd peer communication between masters"
+    from_port   = 2380
+    to_port     = 2380
+    protocol    = "tcp"
+    self        = true
   }
 
   # Multi-master: etcd client access from other masters (apiserver)
   ingress {
-    description     = "etcd client access between control planes"
-    from_port       = 2379
-    to_port         = 2379
-    protocol        = "tcp"
-    self = true
+    description = "etcd client access between control planes"
+    from_port   = 2379
+    to_port     = 2379
+    protocol    = "tcp"
+    self        = true
   }
 
   # Multi-master: kubelet/scheduler/manager comms between masters
   ingress {
-    description     = "kubelet and control plane peer communication"
-    from_port       = 10250
-    to_port         = 10252
-    protocol        = "tcp"
-    self = true
+    description = "kubelet and control plane peer communication"
+    from_port   = 10250
+    to_port     = 10252
+    protocol    = "tcp"
+    self        = true
   }
 
   # Allow outbound traffic to the internet/VPC
@@ -129,28 +129,27 @@ resource "aws_security_group" "kubernetes_workers" {
   vpc_id      = aws_vpc.kubernetes.id
 
   ingress {
-    description     = "Kubelet access from control plane"
-    from_port       = 10250
-    to_port         = 10250
-    protocol        = "tcp"
-    self = true
-  }
-    ingress {
-    description     = "Kubelet access from Jumphost"
-    from_port       = 10250
-    to_port         = 10250
-    protocol        = "tcp"
-    cidr_blocks = [var.vpc_cidr]
-  }
-# add this ONE rule to aws_security_group.kubernetes_workers
-ingress {
-  description     = "TEMP: all protocols from control-plane"
-  from_port       = 0
-  to_port         = 0
-  protocol        = "-1"
+  description     = "Control-plane to LBC webhooks (9443)"
+  from_port       = 9443
+  to_port         = 9443
+  protocol        = "tcp"
   security_groups = [aws_security_group.kubernetes_controlplane.id]
 }
 
+  ingress {
+    description = "Kubelet access from control plane"
+    from_port   = 10250
+    to_port     = 10250
+    protocol    = "tcp"
+    self        = true
+  }
+  ingress {
+    description = "Kubelet access from Jumphost"
+    from_port   = 10250
+    to_port     = 10250
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
 
   ingress {
     description     = "All TCP from control-plane (masters)"
@@ -169,41 +168,41 @@ ingress {
     security_groups = [aws_security_group.kubernetes_controlplane.id]
   }
 
-  # 🔹 Allow ICMP from masters (optional but useful for diag)
+
+
+  # Allow control plane to talk to kubelet API
   ingress {
-    description     = "ICMP from control-plane"
-    from_port       = -1
-    to_port         = -1
-    protocol        = "icmp"
+    description     = "Kubelet API from control plane"
+    from_port       = 10250
+    to_port         = 10250
+    protocol        = "tcp"
     security_groups = [aws_security_group.kubernetes_controlplane.id]
   }
 
-  # Allow control plane to talk to kubelet API
-ingress {
-  description     = "Kubelet API from control plane"
-  from_port       = 10250
-  to_port         = 10250
-  protocol        = "tcp"
-  security_groups = [aws_security_group.kubernetes_controlplane.id]
-}
+  # Allow DNS queries between all nodes
+  ingress {
+    description = "Cluster DNS UDP"
+    from_port   = 53
+    to_port     = 53
+    protocol    = "udp"
+    cidr_blocks = [var.vpc_cidr]
+  }
 
-# Allow DNS queries between all nodes
-ingress {
-  description = "Cluster DNS UDP"
-  from_port   = 53
-  to_port     = 53
-  protocol    = "udp"
-  cidr_blocks = [var.vpc_cidr]
-}
-
-# Allow VXLAN pod networking (Flannel)
-ingress {
-  description = "Pod network VXLAN"
-  from_port   = 8472
-  to_port     = 8472
-  protocol    = "udp"
-  cidr_blocks = [var.vpc_cidr]
-}
+  # Allow VXLAN pod networking (Flannel)
+  ingress {
+    description = "Pod network VXLAN"
+    from_port   = 8472
+    to_port     = 8472
+    protocol    = "udp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+  ingress {
+    description     = "ALB to NodePorts"
+    from_port       = 30000
+    to_port         = 32767
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+  }
 
 
 
@@ -260,4 +259,35 @@ resource "aws_security_group" "kubernetes_nlb" {
   tags = {
     Name = "kubernetes-nlb"
   }
+}
+
+
+resource "aws_security_group" "alb" {
+  name_prefix = "alb-public-"
+  vpc_id      = aws_vpc.kubernetes.id
+
+  ingress {
+    description = "HTTP"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    description = "HTTPS"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "All egress"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = { Name = "alb-public" }
 }

@@ -81,3 +81,8 @@ output "kubernetes_api_zone_id" {
   value       = var.controlplane_count > 1 ? aws_lb.kubernetes_api[0].zone_id : null
 }
 
+output "alb_sg_id" {
+  description = "Security group ID for the ALB"
+  value       = aws_security_group.alb.id
+}
+

@@ -54,3 +54,7 @@ variable "volume_size_gb" {
   description = "Root volume size in GB for instances"
   type        = number
 }
+
+variable "public_subnet_cidr_b" {
+  type    = string
+}

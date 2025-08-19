@@ -35,7 +35,9 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "public-subnet"
+    Name                                         = "public-subnet"
+    "kubernetes.io/role/elb"                     = "1"
+    "kubernetes.io/cluster/srikanth-k8s-hardway" = "shared"
   }
 }
 
@@ -45,7 +47,9 @@ resource "aws_subnet" "private" {
   availability_zone = data.aws_availability_zones.available.names[0]
 
   tags = {
-    Name = "private-subnet"
+    Name                                         = "private-subnet"
+    "kubernetes.io/role/internal-elb"            = "1"
+    "kubernetes.io/cluster/srikanth-k8s-hardway" = "shared"
   }
 }
 
@@ -110,4 +114,24 @@ resource "aws_route_table_association" "private" {
 
 data "aws_availability_zones" "available" {
   state = "available"
+}
+
+
+resource "aws_subnet" "public_b" {
+  vpc_id                  = aws_vpc.kubernetes.id
+  cidr_block              = var.public_subnet_cidr_b          # e.g., 10.240.1.0/24 (NON-overlapping)
+  availability_zone       = data.aws_availability_zones.available.names[1]
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name                                         = "public-subnet-b"
+    "kubernetes.io/role/elb"                     = "1"
+    "kubernetes.io/cluster/srikanth-k8s-hardway" = "shared"
+  }
+}
+
+# attach it to the same public route table (with IGW default route)
+resource "aws_route_table_association" "public_b" {
+  subnet_id      = aws_subnet.public_b.id
+  route_table_id = aws_route_table.public.id
 }
